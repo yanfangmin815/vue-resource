@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>04_模板解析_事件指令_mvvm</title>
+</head>
+<body>
+
+<div id="app">
+  <button v-on:click="show">测试event</button>
+</div>
+<!--
+事件指令解析流程:
+  1. 从指令名中取出事件名
+  2. 根据指令的值(表达式)从methods中得到对应的事件处理函数对象
+  3. 给当前元素节点绑定指定事件名和回调函数的dom事件监听
+  4. 指令解析完后, 移除此指令属性
+-->
+<script src="js/mvvm/compile.js"></script>
+<script src="js/mvvm/observer.js"></script>
+<script src="js/mvvm/watcher.js"></script>
+<script src="js/mvvm/mvvm.js"></script>
+<script>
+  const vm = new MVVM({
+    el: '#app',
+    data: {
+      msg: 'atguigu.com'
+    },
+    methods: {
+      show: function (event) {
+        console.log(this, event);
+        alert(this.msg)
+      }
+    }
+  })
+</script>
+</body>
+</html>

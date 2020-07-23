@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>06_数据劫持-数据绑定</title>
+  <!--
+    1. 数据绑定(model==>View):
+      * 界面的显示是通过读取data中相对应的数据来显示的(初始化)
+      * 一旦更新了data中的某个属性数据, 所有界面上直接使用或间接使用了此属性的节点都会更新(更新)
+    2. 数据劫持
+      * 数据劫持是vue中用来实现数据绑定的一种技术
+      * 基本思想: 通过defineProperty()来监视data中所有属性(任意层次)数据的变化, 一旦变化就去更新界面
+    3. 二个重要对象
+      * Dep(Depend):
+        * data中的每个属性(所有层次)都对应一个dep对象
+        * 创建的时机:
+          * 在初始化define data中各个属性时创建对应的dep对象
+          * 在data中的某个属性值被设置为新的对象时
+        * 对象的结构
+          {
+            id, // 每个dep都有一个唯一的id
+            subs //包含n个对应watcher的数组(subscribes的简写)
+          }
+        * subs属性说明
+          * 当一个watcher被创建时, 内部会将当前watcher对象添加到对应的dep对象的subs中
+          * 当此data属性的值发生改变时, 所有subs中的watcher都会收到更新的通知, 从而最终更新对应的界面
+      * Watcher:
+        * 模板中每个非事件指令或表达式都对应一个watcher对象
+        * 监视当前表达式数据的变化
+        * 创建的时机: 在初始化编译模板时
+        * 对象的组成
+          {
+            vm,  //vm对象
+            exp, //对应指令的表达式
+            cb, //当表达式所对应的数据发生改变的回调函数
+            value, //表达式当前的值
+            depIds //表达式中各级属性所对应的dep对象的集合对象
+                    //属性名为dep的id, 属性值为dep
+          }
+  -->
+</head>
+<body>
+<div id="app">
+  <p>{{name}}</p>
+  <p>{{wife.name}}</p>
+  <p v-text="wife.name"></p>
+  <p v-text="wife.name.firstName"></p>
+
+  <button v-on:click="update">更新</button>
+</div>
+
+<script src="js/mvvm/compile.js"></script>
+<script src="js/mvvm/observer.js"></script>
+<script src="js/mvvm/watcher.js"></script>
+<script src="js/mvvm/mvvm.js"></script>
+<script type="text/javascript">
+  var vm = new MVVM({
+    el: document.getElementById('app'),
+    data: {
+      name: '超超',
+      age: 20,
+      wife: {
+        name: '冰冰',
+        age: 30
+      }
+    },
+    methods: {
+      update () {
+        this.wife.name = 'hehe'
+        this.wife.name = {
+          firstName: 'BAOBAO'
+        }
+      }
+    }
+  })
+</script>
+</body>
+</html>
