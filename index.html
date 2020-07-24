@@ -165,12 +165,12 @@
         // 如果是input框 或 textarea 的话，并且带有 v-model 属性的
         if (($vmodel && $input) || ($vmodel && $textarea)) {
           const key = node.attributes['v-model'].nodeValue
-          // 添加订阅&渲染页面
           
+          // 添加订阅&渲染页面
           this._render(node, 'value', data, key, 'v-model')
           node.addEventListener('input', () => {
             data[key] = node.value;
-          });
+          })
         }
         if ($bind) {
           const key = node.attributes['v-bind'].nodeValue
