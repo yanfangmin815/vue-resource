@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>02_数据代理</title>
+</head>
+<body>
+
+<div id="app">
+  <!-- {{name}} -->
+  <div :src='age' @click='add'>
+    <span>
+      <span>1233</span>
+    </span>
+    <span>343534</span>
+    <input type="text" v-model='age'>
+  </div>
+</div>
+<!--
+1. vue数据代理: data对象的所有属性的操作(读/写)由vm对象来代理操作
+2. 好处: 通过vm对象就可以方便的操作data中的数据
+3. 实现:
+  1). 通过vm.defineProperty()给vm添加与data对象的属性对应的属性
+  2). 所有添加的属性都包含get/set方法
+  3). 在get/set方法中去操作data中对应的属性
+-->
+
+<!-- <script src="js/mvvm/compile.js"></script>
+<script src="js/mvvm/observer.js"></script>
+<script src="js/mvvm/watcher.js"></script> -->
+<!-- <script src="js/mvvm/mvvm.js"></script> -->
+<script>
+  class MVVM {
+    constructor(options) {
+        this.$data = options.data
+        this.$methods = options.methods
+        this.$eventOptions = {
+          '@click': 'click',
+          '@blur': 'blur',
+          '@mouseenter': 'mouseenter',
+          '@focus': 'focus',
+          '@change': 'change',
+          '@mousemove': 'mousemove'
+        }
+        this.clientList = []
+        this.$el = document.querySelector(options.el)
+        this._proxy(this.$data)
+        this.$fragment = this._node2Fragment(this.$el)
+        this._compile(this.$fragment)
+        this.$el.appendChild(this.$fragment)
+      }
+      _node2Fragment(el) {
+        // 创建一个空的fragment对象
+        const fragment = document.createDocumentFragment()
+        let child;
+        const div = document.createElement('div')
+        div.innerHTML = el.innerHTML
+        el.innerHTML = ''
+        // 遍历取出所有的子元素添加到fragment中
+        while (child = div.firstChild) {
+            fragment.appendChild(child); //child会从el中转移到fragment中
+        }
+        return fragment;
+      }
+      /*
+        判断是否是元素节点
+      */
+      isElementNode(node) {
+          return node.nodeType == 1;
+      }
+
+      /*
+        判断是否是文本节点
+      */
+      isTextNode(node) {
+          return node.nodeType == 3;
+      }
+
+      // 代理data
+      _proxy(data) {
+        const _this = this
+        // 暂存当前vm对象
+        this.$data = new Proxy(data, {
+            get: function proxyGetter(target,prop) {
+                return target[prop];
+            },
+            set: function proxySetter(target,prop,value) {
+                target[prop] = value;
+                _this.clientList[prop].map(item => {
+                  item.update()
+                });
+                return true
+            }
+        });
+        // console.log(this.$data)
+    }
+
+    _bindEvent(node) {
+      const data = this.$data
+      Object.keys(this.$eventOptions).map(key => {
+        const eventName = this.$eventOptions[key]
+        const $event = node.attributes && node.attributes.hasOwnProperty(key)
+        if ($event) {
+          const val = node.attributes[key].nodeValue
+          const method = this.$methods[val].bind(data)
+          node.addEventListener(eventName, method)
+        }
+      })
+    }
+
+    /**
+     * 添加订阅
+     * **/
+    _pushPubSub(watcher) {
+        // 订阅事件
+        if (!this.clientList[watcher.key]) {
+            this.clientList[watcher.key] = [];
+        }
+        this.clientList[watcher.key].push(watcher);
+    }
+
+    _bindVBindAbbreviation(node) {
+      if(node.attributes) {
+        const data = this.$data
+        const reg = /^:\w+/
+        for (let key in node.attributes) {
+          const $bindAbbreviation = reg.test(node.attributes[key].nodeName)
+          if ($bindAbbreviation) {
+          const val = node.attributes[key].nodeValue
+          const attr = node.attributes[key].nodeName.slice(1)
+          // 添加订阅
+          this._pushPubSub(new Watcher(node, attr, data, val))
+        }
+        }
+      }
+    }
+    /*
+      指令解析器，对每个元素节点的指令进行扫描和解析，根据指令模板替换数据，以及绑定相对应的更新函数
+    */
+    _compile(root) {
+      const nodes = Array.prototype.slice.call(root.childNodes);
+      const data = this.$data;
+      nodes.map(node => {
+        // console.log(node.attributes && node.attributes.hasOwnProperty(/:\w+/), '<<<<<<<<<<<<<<<<<')
+        if (node.childNodes && node.childNodes.length) {
+          this._compile(node);
+        }
+        const $input = node.nodeName.toLocaleUpperCase() === "INPUT";
+        const $textarea = node.nodeName.toLocaleUpperCase() === "TEXTAREA";
+        const $vmodel = node.attributes && node.attributes.hasOwnProperty('v-model');
+        const $bind = node.attributes && node.attributes.hasOwnProperty('v-bind');
+
+        // 绑定事件
+        this._bindEvent(node)
+
+        // 注册v-bind缩写属性
+        this._bindVBindAbbreviation(node)
+
+        // 如果是input框 或 textarea 的话，并且带有 v-model 属性的
+        if (($vmodel && $input) || ($vmodel && $textarea)) {
+          const key = node.attributes['v-model'].nodeValue
+          // 添加订阅
+          console.log(key, '??????????????')
+          this._pushPubSub(new Watcher(node, 'value', data, key))
+          node.addEventListener('input', () => {
+            data[key] = node.value;
+          });
+        }
+        if ($bind) {
+          const key = node.attributes['v-bind'].nodeValue
+          // 添加订阅
+          this._pushPubSub(new Watcher(node, 'innerHTML', data, key));
+        }
+      });
+    }
+}
+
+        class Watcher {
+          constructor(node, attr, data, key) {
+            this.node = node;
+            this.attr = attr;
+            this.data = data;
+            this.key = key;
+          }
+          update() {
+            this.node[this.attr] = this.data[this.key]
+          }
+        }
+</script>
+<script>
+  const vm = new MVVM({
+    el: '#app',
+    data: {
+      name: 'tom',
+      age: 12
+    },
+    methods:{
+      add() {
+        this.age++
+      },
+      minus() {
+        this.age--
+      }
+    }
+  })
+  // console.log(vm, vm.age)
+  // vm.name = 'xfzhang'
+  // vm.age = 23
+
+  // console.log(vm)
+</script>
+</body>
+</html>
