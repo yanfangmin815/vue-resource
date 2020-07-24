@@ -11,6 +11,8 @@
   <div :class='age'>
     <input type="text" v-model='age'>
     <button @click='add'>+</button>
+    &nbsp;
+    <button @click='minus'>-</button>
   </div>
 </div>
 <!--
@@ -83,7 +85,7 @@
             },
             set: function proxySetter(target,prop,value) {
                 target[prop] = value;
-                _this.clientList[prop].map(item => {
+                _this.clientList[prop] && _this.clientList[prop].map(item => {
                   item.update()
                 })
                 return true
@@ -127,6 +129,7 @@
         const $event = node.attributes && node.attributes.hasOwnProperty(key)
         if ($event) {
           const val = node.attributes[key].nodeValue
+          data[val] = this.$methods[val] 
           const method = this.$methods[val].bind(data)
           node.removeAttribute(key)
           node.addEventListener(eventName, method)
@@ -165,7 +168,7 @@
         // 如果是input框 或 textarea 的话，并且带有 v-model 属性的
         if (($vmodel && $input) || ($vmodel && $textarea)) {
           const key = node.attributes['v-model'].nodeValue
-          
+
           // 添加订阅&渲染页面
           this._render(node, 'value', data, key, 'v-model')
           node.addEventListener('input', () => {
@@ -177,7 +180,7 @@
           // 添加订阅&渲染页面
           this._render(node, 'innerHTML', data, key, 'v-bind')
         }
-      });
+      })
     }
 }
         class Watcher {
@@ -189,7 +192,7 @@
             this.directive = directive;
           }
           update() {
-            console.log(this.node,'--', this.attr, this.directive)
+            // console.log(this.node,'--', this.attr, this.directive)
             this.node.setAttribute(this.attr, this.data[this.key])
             this.node[this.attr] = this.data[this.key]
           }
@@ -207,7 +210,9 @@
     },
     methods:{
       add() {
-        this.age++
+        // console.log(this, 'THIS')
+        this.minus()
+        // this.age++
       },
       minus() {
         this.age--
