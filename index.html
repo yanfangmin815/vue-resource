@@ -8,12 +8,9 @@
 
 <div id="app">
   <!-- {{name}} -->
-  <div :src='age' @click='add'>
-    <span>
-      <span>1233</span>
-    </span>
-    <span>343534</span>
+  <div :class='age'>
     <input type="text" v-model='age'>
+    <button @click='add'>+</button>
   </div>
 </div>
 <!--
@@ -88,24 +85,11 @@
                 target[prop] = value;
                 _this.clientList[prop].map(item => {
                   item.update()
-                });
+                })
                 return true
             }
         });
         // console.log(this.$data)
-    }
-
-    _bindEvent(node) {
-      const data = this.$data
-      Object.keys(this.$eventOptions).map(key => {
-        const eventName = this.$eventOptions[key]
-        const $event = node.attributes && node.attributes.hasOwnProperty(key)
-        if ($event) {
-          const val = node.attributes[key].nodeValue
-          const method = this.$methods[val].bind(data)
-          node.addEventListener(eventName, method)
-        }
-      })
     }
 
     /**
@@ -126,13 +110,35 @@
         for (let key in node.attributes) {
           const $bindAbbreviation = reg.test(node.attributes[key].nodeName)
           if ($bindAbbreviation) {
-          const val = node.attributes[key].nodeValue
-          const attr = node.attributes[key].nodeName.slice(1)
-          // 添加订阅
-          this._pushPubSub(new Watcher(node, attr, data, val))
-        }
+            const val = node.attributes[key].nodeValue
+            const attr = node.attributes[key].nodeName.slice(1)
+            const directive = node.attributes[key].nodeName
+            // 添加订阅&渲染页面
+            this._render(node, attr, data, val, directive)
+          }
         }
       }
+    }
+
+    _bindEvent(node) {
+      const data = this.$data
+      Object.keys(this.$eventOptions).map(key => {
+        const eventName = this.$eventOptions[key]
+        const $event = node.attributes && node.attributes.hasOwnProperty(key)
+        if ($event) {
+          const val = node.attributes[key].nodeValue
+          const method = this.$methods[val].bind(data)
+          node.removeAttribute(key)
+          node.addEventListener(eventName, method)
+        }
+      })
+    }
+
+    _render(node, attr, data, key, directive) {
+      const watcher = new Watcher(node, attr, data, key, directive)
+      watcher.removeAttr()
+      watcher.update()
+      this._pushPubSub(watcher)
     }
     /*
       指令解析器，对每个元素节点的指令进行扫描和解析，根据指令模板替换数据，以及绑定相对应的更新函数
@@ -141,7 +147,7 @@
       const nodes = Array.prototype.slice.call(root.childNodes);
       const data = this.$data;
       nodes.map(node => {
-        // console.log(node.attributes && node.attributes.hasOwnProperty(/:\w+/), '<<<<<<<<<<<<<<<<<')
+        console.log(node, '<<<<<<<<<<<<<<<<<')
         if (node.childNodes && node.childNodes.length) {
           this._compile(node);
         }
@@ -159,31 +165,36 @@
         // 如果是input框 或 textarea 的话，并且带有 v-model 属性的
         if (($vmodel && $input) || ($vmodel && $textarea)) {
           const key = node.attributes['v-model'].nodeValue
-          // 添加订阅
-          console.log(key, '??????????????')
-          this._pushPubSub(new Watcher(node, 'value', data, key))
+          // 添加订阅&渲染页面
+          
+          this._render(node, 'value', data, key, 'v-model')
           node.addEventListener('input', () => {
             data[key] = node.value;
           });
         }
         if ($bind) {
           const key = node.attributes['v-bind'].nodeValue
-          // 添加订阅
-          this._pushPubSub(new Watcher(node, 'innerHTML', data, key));
+          // 添加订阅&渲染页面
+          this._render(node, 'innerHTML', data, key, 'v-bind')
         }
       });
     }
 }
-
         class Watcher {
-          constructor(node, attr, data, key) {
+          constructor(node, attr, data, key, directive) {
             this.node = node;
             this.attr = attr;
             this.data = data;
             this.key = key;
+            this.directive = directive;
           }
           update() {
+            console.log(this.node,'--', this.attr, this.directive)
+            this.node.setAttribute(this.attr, this.data[this.key])
             this.node[this.attr] = this.data[this.key]
+          }
+          removeAttr() {
+            this.node.removeAttribute(this.directive)
           }
         }
 </script>
