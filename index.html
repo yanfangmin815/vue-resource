@@ -143,6 +143,15 @@
       watcher.update()
       this._pushPubSub(watcher)
     }
+
+    _bindVBind() {
+      const $bind = node.attributes && node.attributes.hasOwnProperty('v-bind');
+      if ($bind) {
+          const key = node.attributes['v-bind'].nodeValue
+          // 添加订阅&渲染页面
+          this._render(node, 'innerHTML', data, key, 'v-bind')
+        }
+    }
     /*
       指令解析器，对每个元素节点的指令进行扫描和解析，根据指令模板替换数据，以及绑定相对应的更新函数
     */
@@ -157,13 +166,18 @@
         const $input = node.nodeName.toLocaleUpperCase() === "INPUT";
         const $textarea = node.nodeName.toLocaleUpperCase() === "TEXTAREA";
         const $vmodel = node.attributes && node.attributes.hasOwnProperty('v-model');
-        const $bind = node.attributes && node.attributes.hasOwnProperty('v-bind');
 
         // 绑定事件
         this._bindEvent(node)
 
+        // 注册v-bind属性
+        this._bindVBind(node)
+
         // 注册v-bind缩写属性
         this._bindVBindAbbreviation(node)
+
+        // 绑定文本
+        // this._bindVBindAbbreviation(node)
 
         // 如果是input框 或 textarea 的话，并且带有 v-model 属性的
         if (($vmodel && $input) || ($vmodel && $textarea)) {
@@ -174,11 +188,6 @@
           node.addEventListener('input', () => {
             data[key] = node.value;
           })
-        }
-        if ($bind) {
-          const key = node.attributes['v-bind'].nodeValue
-          // 添加订阅&渲染页面
-          this._render(node, 'innerHTML', data, key, 'v-bind')
         }
       })
     }
@@ -210,7 +219,7 @@
     },
     methods:{
       add() {
-        // console.log(this, 'THIS')
+        console.log(this, 'THIS')
         this.minus()
         // this.age++
       },
