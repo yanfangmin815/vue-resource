@@ -7,8 +7,9 @@
 <body>
 
 <div id="app">
-  <!-- {{name}} -->
   <div>
+    {{age}}
+    <p>{{age}}</p>
     <input type="text" v-model='age'>
     <button @click='add'>+</button>
     &nbsp;
@@ -129,6 +130,22 @@
       this._render(node, 'innerHTML', data, nodeValue, nodeName)
     }
 
+    _vModel(node, nodeValue) {
+      const data = this.$data
+      // 添加订阅&渲染页面
+      this._render(node, 'value', data, nodeValue, 'v-model')
+      node.addEventListener('input', () => {
+        data[nodeValue] = node.value
+      })
+    }
+
+    _handlTextNode(node,nodeValue) {
+      const data = this.$data
+      // 添加订阅&渲染页面
+      console.log(nodeValue, '::::::::::::::::::::::::::::::::')
+      this._render(node, 'innerHTML', data, nodeValue)
+    }
+
     _render(node, attr, data, key, directive, isAttr) {
       const watcher = new Watcher(node, attr, data, key, directive, isAttr)
       watcher.removeAttr()
@@ -145,15 +162,15 @@
       const regBind = /^(v-bind)?:\w+/
       const regEvent = /^((v-on:)+\w+|@\w+)/
       const regDirective = /^(v-)+(html|text)/
+      const regModel = /^(v-)+model/
       const _this = this
       nodes.map(node => {
-        console.log(node.attributes, '<<<<<<<<<<<<<<<<<')
+        console.log(node, '--', node.nodeValue, '<<<<<<<<<<<<<<<<<')
         if (node.childNodes && node.childNodes.length) {
           this._compile(node);
         }
         const $input = node.nodeName.toLocaleUpperCase() === "INPUT";
         const $textarea = node.nodeName.toLocaleUpperCase() === "TEXTAREA";
-        const $vmodel = node.attributes && node.attributes.hasOwnProperty('v-model')
 
         if (node.attributes) {
             for (let key in node.attributes) {
@@ -162,20 +179,16 @@
               const $bindAbbreviation = regBind.test(nodeName) // v-bind & :attr
               const $event = regEvent.test(nodeName) // v-on:event & @event
               const $directive = regDirective.test(nodeName) // v-html & v-text
+              const $vmodel = regModel.test(nodeName) // v-model
+
+              const $isTextNode = _this.isTextNode(node)
+              $isTextNode && _this._handlTextNode(node, nodeValue) // 处理文本
               $bindAbbreviation && _this._bindVBindAbbreviation(node, nodeName, nodeValue)
               $event && _this._bindEvent(node, nodeName, nodeValue)
               $directive && _this._bindDirective(node, nodeName, nodeValue)
+              // input || textarea && v-model
+              if(($vmodel && $input) || ($vmodel && $textarea)) { _this._vModel(node, nodeValue) }
           }
-        }
-
-        // 如果是input框 或 textarea 的话，并且带有 v-model 属性的
-        if (($vmodel && $input) || ($vmodel && $textarea)) {
-          const key = node.attributes['v-model'].nodeValue
-          // 添加订阅&渲染页面
-          this._render(node, 'value', data, key, 'v-model')
-          node.addEventListener('input', () => {
-            data[key] = node.value;
-          })
         }
       })
     }
