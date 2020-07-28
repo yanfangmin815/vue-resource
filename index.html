@@ -8,11 +8,12 @@
 
 <div id="app">
   <!-- {{name}} -->
-  <div :class='age'>
+  <div>
     <input type="text" v-model='age'>
     <button @click='add'>+</button>
     &nbsp;
     <button @click='minus'>-</button>
+    <div v-html='age'></div>
   </div>
 </div>
 <!--
@@ -33,14 +34,6 @@
     constructor(options) {
         this.$data = options.data
         this.$methods = options.methods
-        this.$eventOptions = {
-          '@click': 'click',
-          '@blur': 'blur',
-          '@mouseenter': 'mouseenter',
-          '@focus': 'focus',
-          '@change': 'change',
-          '@mousemove': 'mousemove'
-        }
         this.clientList = []
         this.$el = document.querySelector(options.el)
         this._proxy(this.$data)
@@ -105,84 +98,79 @@
         this.clientList[watcher.key].push(watcher);
     }
 
-    _bindVBindAbbreviation(node) {
-      if(node.attributes) {
+    _bindVBindAbbreviation(node, nodeName, nodeValue) {
         const data = this.$data
-        const reg = /^:\w+/
-        for (let key in node.attributes) {
-          const $bindAbbreviation = reg.test(node.attributes[key].nodeName)
-          if ($bindAbbreviation) {
-            const val = node.attributes[key].nodeValue
-            const attr = node.attributes[key].nodeName.slice(1)
-            const directive = node.attributes[key].nodeName
-            // 添加订阅&渲染页面
-            this._render(node, attr, data, val, directive)
-          }
+        const regBinds = /^(v-bind):\w+/
+        if (regBinds.test(nodeName)) {
+          // 添加订阅&渲染页面
+          const attr = nodeName.split(':')[1]
+          this._render(node, attr, data, nodeValue, nodeName)
+        } else {
+          const attr = nodeName.slice(1)
+          // 添加订阅&渲染页面
+          this._render(node, attr, data, nodeValue, nodeName)
         }
-      }
     }
 
-    _bindEvent(node) {
-      const data = this.$data
-      Object.keys(this.$eventOptions).map(key => {
-        const eventName = this.$eventOptions[key]
-        const $event = node.attributes && node.attributes.hasOwnProperty(key)
-        if ($event) {
-          const val = node.attributes[key].nodeValue
-          data[val] = this.$methods[val] 
-          const method = this.$methods[val].bind(data)
-          node.removeAttribute(key)
+    _bindEvent(node, nodeName, nodeValue) {
+          const data = this.$data
+          const regEventOn = /^(v-on:)+\w+/
+          const regEventAt = /^@\w+/
+          const eventName = regEventOn.test(nodeName) ? nodeName.split(':')[1] : nodeName.slice(1)
+          data[nodeValue] = this.$methods[nodeValue] 
+          const method = this.$methods[nodeValue].bind(data)
+          node.removeAttribute(nodeName)
           node.addEventListener(eventName, method)
-        }
-      })
     }
 
-    _render(node, attr, data, key, directive) {
-      const watcher = new Watcher(node, attr, data, key, directive)
+    _bindDirective(node, nodeName, nodeValue) {
+      const data = this.$data
+      // 添加订阅&渲染页面
+      this._render(node, 'innerHTML', data, nodeValue, nodeName)
+    }
+
+    _render(node, attr, data, key, directive, isAttr) {
+      const watcher = new Watcher(node, attr, data, key, directive, isAttr)
       watcher.removeAttr()
       watcher.update()
       this._pushPubSub(watcher)
     }
 
-    _bindVBind() {
-      const $bind = node.attributes && node.attributes.hasOwnProperty('v-bind');
-      if ($bind) {
-          const key = node.attributes['v-bind'].nodeValue
-          // 添加订阅&渲染页面
-          this._render(node, 'innerHTML', data, key, 'v-bind')
-        }
-    }
     /*
       指令解析器，对每个元素节点的指令进行扫描和解析，根据指令模板替换数据，以及绑定相对应的更新函数
     */
     _compile(root) {
-      const nodes = Array.prototype.slice.call(root.childNodes);
-      const data = this.$data;
+      const nodes = Array.prototype.slice.call(root.childNodes)
+      const data = this.$data
+      const regBind = /^(v-bind)?:\w+/
+      const regEvent = /^((v-on:)+\w+|@\w+)/
+      const regDirective = /^(v-)+(html|text)/
+      const _this = this
       nodes.map(node => {
-        console.log(node, '<<<<<<<<<<<<<<<<<')
+        console.log(node.attributes, '<<<<<<<<<<<<<<<<<')
         if (node.childNodes && node.childNodes.length) {
           this._compile(node);
         }
         const $input = node.nodeName.toLocaleUpperCase() === "INPUT";
         const $textarea = node.nodeName.toLocaleUpperCase() === "TEXTAREA";
-        const $vmodel = node.attributes && node.attributes.hasOwnProperty('v-model');
+        const $vmodel = node.attributes && node.attributes.hasOwnProperty('v-model')
 
-        // 绑定事件
-        this._bindEvent(node)
-
-        // 注册v-bind属性
-        this._bindVBind(node)
-
-        // 注册v-bind缩写属性
-        this._bindVBindAbbreviation(node)
-
-        // 绑定文本
-        // this._bindVBindAbbreviation(node)
+        if (node.attributes) {
+            for (let key in node.attributes) {
+              const nodeName = node.attributes[key].nodeName
+              const nodeValue = node.attributes[key].nodeValue
+              const $bindAbbreviation = regBind.test(nodeName) // v-bind & :attr
+              const $event = regEvent.test(nodeName) // v-on:event & @event
+              const $directive = regDirective.test(nodeName) // v-html & v-text
+              $bindAbbreviation && _this._bindVBindAbbreviation(node, nodeName, nodeValue)
+              $event && _this._bindEvent(node, nodeName, nodeValue)
+              $directive && _this._bindDirective(node, nodeName, nodeValue)
+          }
+        }
 
         // 如果是input框 或 textarea 的话，并且带有 v-model 属性的
         if (($vmodel && $input) || ($vmodel && $textarea)) {
           const key = node.attributes['v-model'].nodeValue
-
           // 添加订阅&渲染页面
           this._render(node, 'value', data, key, 'v-model')
           node.addEventListener('input', () => {
@@ -192,36 +180,35 @@
       })
     }
 }
-        class Watcher {
-          constructor(node, attr, data, key, directive) {
-            this.node = node;
-            this.attr = attr;
-            this.data = data;
-            this.key = key;
-            this.directive = directive;
-          }
-          update() {
-            // console.log(this.node,'--', this.attr, this.directive)
-            this.node.setAttribute(this.attr, this.data[this.key])
-            this.node[this.attr] = this.data[this.key]
-          }
-          removeAttr() {
-            this.node.removeAttribute(this.directive)
-          }
+      class Watcher {
+        constructor(node, attr, data, key, directive, isAttr) {
+          this.node = node;
+          this.attr = attr;
+          this.data = data;
+          this.key = key;
+          this.directive = directive;
+          this.isAttr = isAttr;
         }
+        update() {
+          // console.log(this.node,'--', this.attr,'--',this.isAttr)
+          this.node[this.attr] = this.data[this.key]
+        }
+        removeAttr() {
+          this.node.removeAttribute(this.directive)
+        }
+      }
 </script>
 <script>
   const vm = new MVVM({
     el: '#app',
     data: {
       name: 'tom',
-      age: 12
+      age: 12,
+      content: '这是一段文本'
     },
     methods:{
       add() {
-        console.log(this, 'THIS')
-        this.minus()
-        // this.age++
+        this.age++
       },
       minus() {
         this.age--
