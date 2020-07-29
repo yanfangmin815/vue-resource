@@ -8,8 +8,7 @@
 
 <div id="app">
   <div>
-    <!-- {{age}} -->
-    <p>{{age}}-------{{name}}</p>
+    <p>{{name}}今年{{age}}岁了</p>
     <input type="text" v-model='age'>
     <button @click='add'>+</button>
     &nbsp;
@@ -146,8 +145,8 @@
       this._render(node, 'nodeValue', data, nodeValue)
     }
 
-    _render(node, attr, data, key, directive, isAttr) {
-      const watcher = new Watcher(node, attr, data, key, directive, isAttr)
+    _render(node, attr, data, key, directive) {
+      const watcher = new Watcher(node, attr, data, key, directive)
       directive && watcher.removeAttr()
       watcher.update()
       this._pushPubSub(watcher)
@@ -191,7 +190,7 @@
           const $isTextNode = _this.isTextNode(node)
           let nodeValue = node.nodeValue.match(/\w+/g)
           nodeValue && nodeValue.length > 1 && nodeValue.map(item => {
-              const 
+              // const 
           })
           key = nodeValue && nodeValue.length == 1 && nodeValue[0]
           console.log(node, '--', node.nodeType, '<<<<<<<<<<<<<<<<<')
@@ -201,13 +200,12 @@
     }
   }
       class Watcher {
-        constructor(node, attr, data, key, directive, isAttr) {
+        constructor(node, attr, data, key, directive) {
           this.node = node;
           this.attr = attr;
           this.data = data;
           this.key = key;
           this.directive = directive;
-          this.isAttr = isAttr;
         }
         update() {
           // console.log(this.node,'--', this.attr,'--',this.isAttr)
