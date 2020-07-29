@@ -8,8 +8,8 @@
 
 <div id="app">
   <div>
-    {{age}}
-    <p>{{age}}</p>
+    <!-- {{age}} -->
+    <p>{{age}}-------{{name}}</p>
     <input type="text" v-model='age'>
     <button @click='add'>+</button>
     &nbsp;
@@ -142,13 +142,13 @@
     _handlTextNode(node,nodeValue) {
       const data = this.$data
       // 添加订阅&渲染页面
-      console.log(nodeValue, '::::::::::::::::::::::::::::::::')
-      this._render(node, 'innerHTML', data, nodeValue)
+      // console.log(node, '::::::::::::::::::::::::::::::::')
+      this._render(node, 'nodeValue', data, nodeValue)
     }
 
     _render(node, attr, data, key, directive, isAttr) {
       const watcher = new Watcher(node, attr, data, key, directive, isAttr)
-      watcher.removeAttr()
+      directive && watcher.removeAttr()
       watcher.update()
       this._pushPubSub(watcher)
     }
@@ -165,9 +165,8 @@
       const regModel = /^(v-)+model/
       const _this = this
       nodes.map(node => {
-        console.log(node, '--', node.nodeValue, '<<<<<<<<<<<<<<<<<')
         if (node.childNodes && node.childNodes.length) {
-          this._compile(node);
+          this._compile(node)
         }
         const $input = node.nodeName.toLocaleUpperCase() === "INPUT";
         const $textarea = node.nodeName.toLocaleUpperCase() === "TEXTAREA";
@@ -181,18 +180,26 @@
               const $directive = regDirective.test(nodeName) // v-html & v-text
               const $vmodel = regModel.test(nodeName) // v-model
 
-              const $isTextNode = _this.isTextNode(node)
-              $isTextNode && _this._handlTextNode(node, nodeValue) // 处理文本
               $bindAbbreviation && _this._bindVBindAbbreviation(node, nodeName, nodeValue)
               $event && _this._bindEvent(node, nodeName, nodeValue)
               $directive && _this._bindDirective(node, nodeName, nodeValue)
               // input || textarea && v-model
               if(($vmodel && $input) || ($vmodel && $textarea)) { _this._vModel(node, nodeValue) }
           }
+        } else {
+          let key
+          const $isTextNode = _this.isTextNode(node)
+          let nodeValue = node.nodeValue.match(/\w+/g)
+          nodeValue && nodeValue.length > 1 && nodeValue.map(item => {
+              const 
+          })
+          key = nodeValue && nodeValue.length == 1 && nodeValue[0]
+          console.log(node, '--', node.nodeType, '<<<<<<<<<<<<<<<<<')
+          key && $isTextNode && _this._handlTextNode(node, nodeValue) // 处理文本
         }
       })
     }
-}
+  }
       class Watcher {
         constructor(node, attr, data, key, directive, isAttr) {
           this.node = node;
