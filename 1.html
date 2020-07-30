@@ -11,12 +11,12 @@ name = 'aaa bbb ccc {{AAA}} to {{BBB}}';
 
 uw=name.replace(/{{\w+}}/g, function(word){
     const text = word.match(/\w+/)[0]
-    // console.log(text[0])
+    console.log(text,'???????')
 	return obj[text]}
 	);
 
-document.write (uw);
-
+console.log (uw);
+console.log (uw);
 </script>
 
 </body>

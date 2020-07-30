@@ -152,13 +152,14 @@
     }
 
     textNode(node, data) {
-      console.log( data)
-      return node.nodeValue.replace(/{{\w+}}/g, function(word){
-          const text = word.match(/\w+/)[0]
+      console.log( node.nodeValue)
 
+      const vm = node.nodeValue.replace(/{{\w+}}/g, function(word){
+          const text = word.match(/\w+/)[0]
           return data[text]
         }
       )
+      return vm
     }
 
     _render(node, attr, data, key, directive, cb=null) {
