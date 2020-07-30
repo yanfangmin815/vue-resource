@@ -83,8 +83,7 @@
                 })
                 return true
             }
-        });
-        // console.log(this.$data)
+        })
     }
 
     /**
@@ -138,15 +137,32 @@
       })
     }
 
-    _handlTextNode(node,nodeValue) {
+    _handlTextNodeSingle(node, nodeValue) {
       const data = this.$data
       // 添加订阅&渲染页面
-      // console.log(node, '::::::::::::::::::::::::::::::::')
       this._render(node, 'nodeValue', data, nodeValue)
     }
 
-    _render(node, attr, data, key, directive) {
-      const watcher = new Watcher(node, attr, data, key, directive)
+    _handlTextNodeMulti(node, nodeValue) {
+      const data = this.$data
+      // 添加订阅&渲染页面
+      nodeValue.map(item => {
+        this._render(node, 'nodeValue', data, item, null, this.textNode)
+      })
+    }
+
+    textNode(node, data) {
+      console.log( data)
+      return node.nodeValue.replace(/{{\w+}}/g, function(word){
+          const text = word.match(/\w+/)[0]
+
+          return data[text]
+        }
+      )
+    }
+
+    _render(node, attr, data, key, directive, cb=null) {
+      const watcher = new Watcher(node, attr, data, key, directive, cb)
       directive && watcher.removeAttr()
       watcher.update()
       this._pushPubSub(watcher)
@@ -189,32 +205,34 @@
           let key
           const $isTextNode = _this.isTextNode(node)
           let nodeValue = node.nodeValue.match(/\w+/g)
-          nodeValue && nodeValue.length > 1 && nodeValue.map(item => {
-              // const 
-          })
+          nodeValue && nodeValue.length > 1 && _this._handlTextNodeMulti(node, nodeValue)
           key = nodeValue && nodeValue.length == 1 && nodeValue[0]
-          console.log(node, '--', node.nodeType, '<<<<<<<<<<<<<<<<<')
-          key && $isTextNode && _this._handlTextNode(node, nodeValue) // 处理文本
+          key && $isTextNode && _this._handlTextNodeSingle(node, nodeValue) // 处理文本
         }
       })
     }
   }
-      class Watcher {
-        constructor(node, attr, data, key, directive) {
-          this.node = node;
-          this.attr = attr;
-          this.data = data;
-          this.key = key;
-          this.directive = directive;
-        }
-        update() {
-          // console.log(this.node,'--', this.attr,'--',this.isAttr)
-          this.node[this.attr] = this.data[this.key]
-        }
-        removeAttr() {
-          this.node.removeAttribute(this.directive)
-        }
+  class Watcher {
+    constructor(node, attr, data, key, directive, cb) {
+      this.node = node
+      this.attr = attr
+      this.data = data
+      this.key = key
+      this.directive = directive
+      this.cb = cb
+    }
+    update() {
+      if (this.cb) {
+        const text = this.cb(this.node, this.data)
+        this.node[this.attr] = text
+        return
       }
+      this.node[this.attr] = this.data[this.key]
+    }
+    removeAttr() {
+      this.node.removeAttribute(this.directive)
+    }
+  }
 </script>
 <script>
   const vm = new MVVM({

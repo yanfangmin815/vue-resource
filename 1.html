@@ -1,0 +1,23 @@
+<html>
+<body>
+
+<script type="text/javascript">
+var obj = {
+	AAA: '123',
+    BBB: '456'
+}
+
+name = 'aaa bbb ccc {{AAA}} to {{BBB}}';
+
+uw=name.replace(/{{\w+}}/g, function(word){
+    const text = word.match(/\w+/)[0]
+    // console.log(text[0])
+	return obj[text]}
+	);
+
+document.write (uw);
+
+</script>
+
+</body>
+</html>
