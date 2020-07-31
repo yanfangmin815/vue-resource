@@ -13,7 +13,7 @@
     <input type="text" v-model='age'>
     <button @click='add'>+</button>
     &nbsp;
-    <button @click='minus'>-</button>
+    <button v-bind:class='name' @click='minus'>-</button>
     <div v-html='age'></div>
   </div>
 </div>
@@ -104,10 +104,12 @@
         const regBinds = /^(v-bind):\w+/
         if (regBinds.test(nodeName)) {
           // 添加订阅&渲染页面
-          const attr = nodeName.split(':')[1]
+          let attr = nodeName.split(':')[1]
+          attr = attr === 'class' && 'className'
           this._render(node, attr, data, nodeValue, nodeName)
         } else {
-          const attr = nodeName.slice(1)
+          let attr = nodeName.slice(1)
+          attr = attr === 'class' && 'className'
           // 添加订阅&渲染页面
           this._render(node, attr, data, nodeValue, nodeName)
         }
@@ -189,27 +191,32 @@
         const $input = node.nodeName.toLocaleUpperCase() === "INPUT";
         const $textarea = node.nodeName.toLocaleUpperCase() === "TEXTAREA";
 
+        const attrList = []
         if (node.attributes) {
             for (let key in node.attributes) {
               const nodeName = node.attributes[key].nodeName
               const nodeValue = node.attributes[key].nodeValue
-              const $bindAbbreviation = regBind.test(nodeName) // v-bind & :attr
-              const $event = regEvent.test(nodeName) // v-on:event & @event
-              const $directive = regDirective.test(nodeName) // v-html & v-text
-              const $vmodel = regModel.test(nodeName) // v-model
-
-              $bindAbbreviation && _this._bindVBindAbbreviation(node, nodeName, nodeValue)
-              $event && _this._bindEvent(node, nodeName, nodeValue)
-              $directive && _this._bindDirective(node, nodeName, nodeValue)
-              // input || textarea && v-model
-              if(($vmodel && $input) || ($vmodel && $textarea)) { _this._vModel(node, nodeValue) }
+              attrList.push({nodeName, nodeValue, node})
           }
+          attrList.map(item => {
+            const {nodeName, nodeValue, node} = item
+            const $bindAbbreviation = regBind.test(nodeName) // v-bind & :attr
+            const $event = regEvent.test(nodeName) // v-on:event & @event
+            const $directive = regDirective.test(nodeName) // v-html & v-text
+            const $vmodel = regModel.test(nodeName) // v-model
+            $bindAbbreviation && _this._bindVBindAbbreviation(node, nodeName, nodeValue)
+            $event && _this._bindEvent(node, nodeName, nodeValue)
+            $directive && _this._bindDirective(node, nodeName, nodeValue)
+            // input || textarea && v-model
+            if(($vmodel && $input) || ($vmodel && $textarea)) { _this._vModel(node, nodeValue) }
+          })
         } else {
           const $isTextNode = _this.isTextNode(node)
           let nodeValue = node.nodeValue.match(/\w+/g)
           nodeValue && nodeValue.length && _this._handlTextNodeMulti(node, nodeValue)
         }
       })
+
     }
   }
   class Watcher {
@@ -248,6 +255,7 @@
         this.age++
       },
       minus() {
+        console.log(3413)
         this.age--
       }
     }
