@@ -163,6 +163,7 @@
       )
     }
 
+    // 渲染&添加监视器
     _render(node, attr, data, key, directive, cb=null, nodeValue=null) {
       const watcher = new Watcher(node, attr, data, key, directive, cb, nodeValue)
       directive && watcher.removeAttr()
