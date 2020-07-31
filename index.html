@@ -204,7 +204,6 @@
               if(($vmodel && $input) || ($vmodel && $textarea)) { _this._vModel(node, nodeValue) }
           }
         } else {
-          let key
           const $isTextNode = _this.isTextNode(node)
           let nodeValue = node.nodeValue.match(/\w+/g)
           nodeValue && nodeValue.length && _this._handlTextNodeMulti(node, nodeValue)
